@@ -4,6 +4,8 @@ import { Board, rowId } from './components/Board.jsx'
 import { Panel } from './components/Panel.jsx'
 import { Notes, KOFI_URL } from './components/Notes.jsx'
 import { PlayerPage } from './components/PlayerPage.jsx'
+import { GroupPage, GroupIndex } from './components/GroupPage.jsx'
+import { posFromSlug } from './lib/groups.ts'
 import { PlayerFinder, loadIndex } from './components/PlayerFinder.jsx'
 import { CoffeeIcon, ShareIcon } from './components/Icons.jsx'
 import { useShare } from './hooks/useShare.ts'
@@ -24,18 +26,23 @@ import { ledgerFile, colUrl } from './ledger-client.js'
 /** the open row's top, clear of the index site's sticky back bar */
 const BACK_BAR = 64
 
-/** the route from a pathname: the board, or a player's page at player/<id>/ */
+/** the route from a pathname: the board, a player's page at player/<id>/, a team page at team/<id>/<position>/, or the team list at team/ */
 export function parseRoute(path) {
   const base = import.meta.env.BASE_URL
   const rel = (path ?? '').startsWith(base) ? path.slice(base.length) : (path ?? '').replace(/^\//, '')
   const m = /^player\/([^/]+)\/?$/.exec(rel)
   if (m) return { kind: 'player', id: decodeURIComponent(m[1]) }
+  const g = /^team\/([a-z]+)\/([a-z-]+)\/?$/.exec(rel)
+  if (g && posFromSlug(g[2])) return { kind: 'team', id: g[1], pos: posFromSlug(g[2]) }
+  if (/^team\/?$/.test(rel)) return { kind: 'teams' }
   return { kind: 'board', landing: landingFromPath(`/${rel}`) }
 }
 
 /** `path`, `preload` and `ledger` come from the prerender or main.jsx, never from window during render */
 export default function App({ path = '', preload = null, ledger = null }) {
   const route = parseRoute(path)
+  if (route.kind === 'team') return <GroupPage id={route.id} pos={route.pos} preload={preload} />
+  if (route.kind === 'teams') return <GroupIndex />
   if (route.kind === 'player') return <PlayerPage id={route.id} preload={preload} firstSeason={ledgerFile.firstSeason} />
   return <BoardApp L={ledger} initial={route.landing?.query ?? DEFAULT_QUERY} />
 }

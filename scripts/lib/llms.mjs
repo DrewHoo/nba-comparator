@@ -24,10 +24,12 @@ const line = ({ text, url, lead }) => `- [${text}](${url})${lead ? ` — ${lead}
  *   landings: { h1: string, url: string, lead?: string }[],
  *   players: { name: string, url: string, lead?: string }[],  // five examples
  *   playerCount: number,       // how many player pages there are
+ *   teams?: { h1: string, url: string, lead?: string }[],    // team pages to list
+ *   teamList?: string,         // the team list's URL
  *   espnFirst?: number,        // the first ESPN season (1994)
  * }} o
  */
-export function llmsText({ site, title, description, firstSeason, currentSeason, landings = [], players = [], playerCount, espnFirst = ESPN_FIRST_SEASON }) {
+export function llmsText({ site, title, description, firstSeason, currentSeason, landings = [], players = [], playerCount, teams = [], teamList, espnFirst = ESPN_FIRST_SEASON }) {
   const first = seasonWords(firstSeason), espn = seasonWords(espnFirst)
   const count = (playerCount ?? players.length).toLocaleString('en-US')
   return `# ${title}
@@ -48,7 +50,13 @@ A page per player at ${site}player/<id>/ (${count} of them), listing every compa
 
 ${players.map((p) => line({ text: p.name, url: p.url, lead: p.lead })).join('\n')}
 
-## Data
+${teams.length ? `## Teams
+
+A page per franchise and position at ${site}team/<team>/<guards|forwards|centers>/ (the list is ${teamList ?? `${site}team/`}): every player with 82 or more regular-season games for the franchise, its older names included, ranked by points, with the top players' totals drawn game by game. For example:
+
+${teams.map((t) => line({ text: t.h1, url: t.url, lead: t.lead })).join('\n')}
+
+` : ''}## Data
 
 - [Method](${site}#method): the sources, the rulings (what counts as a game, a start, a triple-double) and the era each stat is recorded from.
 - [The repository](${REPO}): the ledger, the engine and the known-answer gate.

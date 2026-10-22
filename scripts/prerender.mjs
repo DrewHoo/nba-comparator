@@ -1,7 +1,9 @@
 // Runs after `vite build`. Bakes the rendered board into dist/index.html and
 // writes the <head> from site.config.js, then a page per player with a
 // records file (dist/player/<id>/index.html, the file embedded so the
-// hydrate matches, and dist/player/<id>/og.png, his own social card), the
+// hydrate matches, and dist/player/<id>/og.png, his own social card), a team
+// page per franchise and position (dist/team/<id>/<position>/, its data
+// embedded the same way, with its card) and the team list (dist/team/), the
 // sitemap, and the ledger for the share worker (dist/data/).
 //
 // Without this the deployed page is `<div id="root"></div>` and every word on
@@ -17,7 +19,7 @@ import { fileURLToPath } from 'node:url'
 import config from '../site.config.js'
 import pkg from '../package.json' with { type: 'json' }
 import { loadLedger } from './lib/ledger-node.mjs'
-import { spanWords } from '../src/lib/ledger.ts'
+import { seasonWords, spanWords } from '../src/lib/ledger.ts'
 import { decodePlayer, page } from '../src/lib/records.ts'
 import { placeWords, recordWords } from '../src/lib/words.ts'
 import { playerText, SITE as SITE_NAME } from '../src/lib/share.ts'
@@ -29,6 +31,9 @@ import { itemListOf, boardItems, playerItems } from './lib/jsonld.mjs'
 import { llmsText } from './lib/llms.mjs'
 import { toPng } from './lib/og.mjs'
 import { playerCard } from './lib/og-player.mjs'
+import { groupCard } from './lib/og-group.mjs'
+import { FRANCHISES, GROUP_POS, POS_SLUG, groupData, groupDescription, groupH1, groupLead, groupPath, groupTitle } from '../src/lib/groups.ts'
+import { POS_WORDS } from '../src/lib/words.ts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const SLUG = pkg.name
@@ -211,11 +216,70 @@ for (const entry of index) {
   n++
 }
 await Promise.all(pending)
-await vite.close()
 console.log(`prerendered ${n} player pages, each with its card, in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
 
+// the team pages (src/lib/groups.ts): the best guards, forwards and centers of each franchise, each with its card,
+// and the list that reaches them all
+const crumbs = (...items) => ({ '@type': 'BreadcrumbList', itemListElement: [
+  { '@type': 'ListItem', position: 1, name: config.domain, item: `${ORIGIN}/` },
+  { '@type': 'ListItem', position: 2, name: config.title, item: SITE },
+  ...items.map((it, i) => ({ '@type': 'ListItem', position: i + 3, ...it })),
+] })
+const webPage = (url, name, description, extra = {}) => ({ '@type': 'WebPage', '@id': url, url, name, description, isPartOf: { '@type': 'WebSite', url: `${ORIGIN}/`, name: config.domain }, ...extra })
+const llmsTeams = []
+{
+  const t1 = Date.now()
+  const listUrl = `${SITE}team/`
+  const listName = "Every NBA franchise's best guards, forwards and centers"
+  let teams = 0
+  for (const f of FRANCHISES) {
+    for (const pos of GROUP_POS) {
+      const d = groupData(L, f, pos)
+      for (const r of d.rows) if (hasPage.has(r.id)) r.page = true
+      const url = `${SITE}${groupPath(f.id, pos).slice(1)}`
+      const title = groupTitle(d, config.title)
+      const description = groupDescription(d)
+      const html = renderToString(React.createElement(App, { path: `/${SLUG}${groupPath(f.id, pos)}`, preload: d }))
+      if (!html.replace(/<[^>]+>/g, '').includes(esc(groupH1(d)).replace(/'/g, '&#x27;'))) throw new Error(`prerender: ${url} rendered without its h1`)
+      const ld = {
+        '@context': 'https://schema.org',
+        '@graph': [
+          webPage(url, title, description, { about: { '@type': 'SportsTeam', name: f.name, sport: 'Basketball' } }),
+          crumbs({ name: listName, item: listUrl }, { name: groupH1(d), item: url }),
+          itemListOf({ name: groupH1(d), url, items: d.rows.slice(0, 10).map((r) => ({ name: `${r.name}: ${r.totals[0]?.toLocaleString('en-US')} points`, ...(r.page ? { url: playerUrl(r.id) } : {}) })) }),
+        ],
+      }
+      const dir = path.join(ROOT, 'dist', 'team', f.id, POS_SLUG[pos])
+      fs.mkdirSync(dir, { recursive: true })
+      const image = { url: `${url}og.png`, alt: `${groupH1(d)}: ${groupLead(d)} On a dark background.` }
+      fs.writeFileSync(path.join(dir, 'index.html'), pageHtml({ title, head: headFor({ url, title, description, jsonLd: ld, image }), appHtml: html, embed: d }))
+      await draw(groupCard(d), path.join(dir, 'og.png'))
+      urls.push(url)
+      if (pos === 'G') llmsTeams.push({ h1: groupH1(d), url, lead: groupLead(d) })
+      teams++
+    }
+  }
+  const title = `${listName}, since ${seasonWords(L.firstSeason)} · ${config.title}`
+  const description = `The best guards, forwards and centers of each of the 30 NBA franchises, the franchise's older names included, each with the players' points, rebounds, assists, 3-pointers and blocks drawn game by game.`
+  const html = renderToString(React.createElement(App, { path: `/${SLUG}/team/` }))
+  const ld = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      webPage(listUrl, title, description),
+      crumbs({ name: listName, item: listUrl }),
+      itemListOf({ name: listName, url: listUrl, items: FRANCHISES.flatMap((f) => GROUP_POS.map((pos) => ({ name: `${f.name} ${POS_WORDS[pos]}`, url: `${SITE}${groupPath(f.id, pos).slice(1)}` }))) }),
+    ],
+  }
+  fs.mkdirSync(path.join(ROOT, 'dist', 'team'), { recursive: true })
+  fs.writeFileSync(path.join(ROOT, 'dist', 'team', 'index.html'), pageHtml({ title, head: headFor({ url: listUrl, title, description, jsonLd: ld }), appHtml: html }))
+  urls.splice(1 + llmsBoards.length, 0, listUrl)
+  await Promise.all(pending)
+  console.log(`prerendered ${teams} team pages over ${FRANCHISES.length} franchises, each with its card, and the team list, in ${((Date.now() - t1) / 1000).toFixed(1)}s`)
+}
+await vite.close()
+
 // llms.txt (llmstxt.org): the site in plain markdown for a language model
-fs.writeFileSync(path.join(ROOT, 'dist/llms.txt'), llmsText({ site: SITE, title: config.title, description: config.description, firstSeason: L.firstSeason, currentSeason: L.currentSeason, landings: llmsBoards, players: llmsPlayers, playerCount: n }))
+fs.writeFileSync(path.join(ROOT, 'dist/llms.txt'), llmsText({ site: SITE, title: config.title, description: config.description, firstSeason: L.firstSeason, currentSeason: L.currentSeason, landings: llmsBoards, players: llmsPlayers, playerCount: n, teams: llmsTeams, teamList: `${SITE}team/` }))
 
 // the sitemap: what Search Console wants submitted, and it carries lastmod
 const lastmod = new Date().toISOString().slice(0, 10)

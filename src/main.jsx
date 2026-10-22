@@ -15,7 +15,8 @@ import './styles.css'
 // The board needs the ledger to render the same rows the prerender did, so
 // the base columns and the address's own columns (about 1.5MB gzipped for the
 // default board) load before the hydrate; the page is readable meanwhile. A
-// player page carries its records file in the HTML and needs no ledger.
+// player page carries its records file in the HTML and needs no ledger, and so
+// does a team page.
 const root = document.getElementById('root')
 const path = window.location.pathname
 const data = document.getElementById('player-data')
@@ -32,7 +33,7 @@ const mount = (ledger) => {
   else createRoot(root).render(app)
 }
 
-if (/\/player\/[^/]+\/?$/.test(path)) mount(null)
+if (/\/player\/[^/]+\/?$/.test(path) || /\/team\//.test(path)) mount(null)
 else {
   let cols = queryCols(DEFAULT_QUERY)
   try { cols = [...new Set([...cols, ...queryCols(parseAddress(path, window.location.search, import.meta.env.BASE_URL).query)])] } catch {}

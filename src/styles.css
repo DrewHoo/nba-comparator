@@ -292,3 +292,41 @@ footer a { color: var(--ink-muted); }
 .notes summary:hover { color: var(--cream); }
 .notes details[open] > summary { margin-bottom: 4px; }
 .notes details > p { margin: 8px 0 8px 14px; }
+
+/* the team pages (GroupPage.jsx): a chart per metric, the ranking as a table, the franchise list */
+.landing-more { margin: 12px 2px 0; font-size: 14px; color: var(--ink-muted); }
+.landing-more a { color: var(--ink); text-decoration: underline dotted; text-underline-offset: 3px; }
+.landing-more a:hover { color: var(--cream); }
+.gcharts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px 24px; margin-top: 18px; }
+.gchart { margin: 0; }
+.gchart figcaption { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); padding: 0 2px 4px; }
+.gchart svg { width: 100%; height: auto; display: block; }
+.gchart .axis { stroke: var(--line); stroke-width: 1; }
+.gchart .tick { font-family: 'IBM Plex Mono', monospace; font-size: 9px; fill: var(--ink-faint); }
+.gchart .gl path { fill: none; stroke: var(--ink-faint); stroke-width: 1.3; opacity: 0.8; transition: stroke 0.15s, opacity 0.15s; }
+.gchart .gl .lead-line { stroke: var(--line); stroke-width: 1; stroke-dasharray: 1 3; }
+.gchart .gl text { font-family: 'IBM Plex Mono', monospace; font-size: 9px; fill: var(--ink-muted); }
+.gchart .gl.lead path { stroke: var(--cream); stroke-width: 2; opacity: 1; }
+.gchart .gl.lead text { fill: var(--cream); }
+.gchart .gl:hover path { stroke: var(--rust); stroke-width: 2.2; opacity: 1; }
+.gchart .gl:hover text { fill: var(--rust); }
+.gtable { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.gtable th { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 400; text-align: left; padding: 6px 6px 4px; border-bottom: 1px solid var(--line); }
+.gtable td { padding: 6px; border-bottom: 1px dotted var(--line); vertical-align: baseline; }
+.gtable .num { text-align: right; font-family: 'Graduate', serif; font-size: 15px; color: var(--ink); letter-spacing: -0.01em; }
+.gtable td.num.lead { color: var(--cream); font-size: 17px; }
+.gtable .gname a { color: var(--ink); text-decoration: none; border-bottom: 1px dotted var(--ink-faint); font-weight: 600; }
+.gtable .gname a:hover { color: var(--cream); border-bottom-style: solid; }
+.gtable td.xd { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); white-space: nowrap; }
+.gtable td.num.xd { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-faint); }
+@media (max-width: 600px) { .gtable th:nth-child(3), .gtable td:nth-child(3) { display: none; } .gtable td { padding: 5px 4px; } .gtable .num { font-size: 13px; } }
+.gindex { list-style: none; margin: 18px 0 0; padding: 0; max-width: 760px; font-size: 14px; line-height: 1.7; }
+.gindex li { padding: 3px 0; border-bottom: 1px dotted var(--line); }
+.gindex b { color: var(--cream); font-weight: 600; margin-right: 8px; }
+.gindex a { color: var(--ink-muted); text-decoration: none; border-bottom: 1px dotted var(--ink-faint); margin-right: 8px; font-size: 13px; }
+.gindex a:hover { color: var(--cream); }
+.gtable sup { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-faint); margin-left: 1px; }
+.gtable td.num[title] { cursor: help; }
+.gtable .gname > span { color: var(--ink); font-weight: 600; }
+.gtable th.num { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; color: var(--ink-faint); letter-spacing: 0.1em; text-align: right; }
+.nowrap { white-space: nowrap; }
