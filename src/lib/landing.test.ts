@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { LANDINGS, landingBySlug, landingFor, landingFromPath, landingTitle, queryKey } from './landing.ts'
 import { hrefOf, parseAddress, toUrl } from './url.ts'
 import { DEFAULT_QUERY, normalize } from './query.ts'
+import { h1Words } from './words.ts'
 
 describe('the named boards', () => {
   it('every slug is unique, lower-case and hyphenated, and none is the root query', () => {
@@ -24,6 +25,14 @@ describe('the named boards', () => {
     expect(hrefOf({ query: { ...ten.query, n: 15000 }, open: null })).toBe(`/${toUrl({ query: { ...ten.query, n: 15000 }, open: null })}`)
     expect(landingFromPath('/nowhere/')).toBeNull()
     expect(landingFromPath('/player/1035/')).toBeNull()
+  })
+  it('an unnamed board\'s h1 is the query worded the way it is searched', () => {
+    expect(h1Words(DEFAULT_QUERY)).toBe('Most points through the first 100 games of an NBA career')
+    expect(h1Words({ ...DEFAULT_QUERY, stat: 'stl', pos: 'G' }, 1984)).toBe("Most steals through the first 100 games of an NBA guard's career since 1983-84")
+    expect(h1Words({ ...DEFAULT_QUERY, how: 'reach', n: 10000, dir: 'fewest', seq: 'starts', scope: 'all' })).toBe('Fastest to 10,000 points in NBA history, by starts, playoffs included')
+    expect(h1Words({ ...DEFAULT_QUERY, seq: 'teamGames', n: 20, how: 'count', tests: [{ stat: 'pts', min: 30 }] })).toBe("Most games with 30+ points in a team's first 20 games of an NBA season")
+    expect(h1Words({ ...DEFAULT_QUERY, stat: 'ast', seq: 'seasons', n: 1, pos: 'C' })).toBe("Most assists in an NBA center's rookie season")
+    expect(h1Words({ ...DEFAULT_QUERY, how: 'streak', tests: [{ stat: 'dd', min: 1 }], n: 500 })).toBe('Longest streak of games with a double-double in the first 500 games of an NBA career')
   })
   it('titles carry the era the data forces and the site', () => {
     expect(landingTitle(landingBySlug.get('most-steals-through-100-games')!, 1984, 'NBA Comparator')).toBe('Most steals through the first 100 games of an NBA career (since 1983-84) · NBA Comparator')

@@ -14,7 +14,7 @@ import { parseAddress, hrefOf, toUrl } from './lib/url.ts'
 import { landingFor, landingFromPath, landingTitle } from './lib/landing.ts'
 import { Landings } from './components/Landings.jsx'
 import { rowName, rowWords } from './lib/words.ts'
-import { queryWords } from './lib/words.ts'
+import { h1Words, queryWords } from './lib/words.ts'
 import { peerOf } from './lib/compare.ts'
 import { shareText, shareTitle, SITE } from './lib/share.ts'
 import { track } from './lib/analytics.ts'
@@ -152,11 +152,11 @@ function BoardApp({ L, initial }) {
           {copied && <span className="toast">copied</span>}
         </span>
       </div>
-      <h1 className={landing ? 'landing-h1' : undefined}>{landing ? landing.h1 : 'NBA Comparator'}</h1>
+      {/* one h1: the site as an eyebrow, the board's subject as the title, worded the way it's searched */}
+      <h1><span className="h1-site">NBA Comparator</span><span className="h1-words">{landing ? landing.h1 : h1Words(query, bound)}</span></h1>
       {landing && leader && <p className="landing-line">{rowName(leader)} leads with {rowWords(leader, query)}.</p>}
       <Sentence query={query} ledger={L} bound={bound} onChange={change} />
       <p className="baserate">
-        {!landing && <span className="sr-only">{queryWords(query, bound)}. </span>}
         Same point in the career, every {query.seq === 'teamGames' ? 'season' : 'career'} since {spanWords(since, since)}.
         {leader && <> The leader: <b>{leader.player.name}</b>, {leader.value.toLocaleString('en-US')}.</>}
         {!ready && <span className="dateline-upd"> loading…</span>}

@@ -146,6 +146,7 @@ const llmsBoards = []
     const lead1 = lead(board, l.query)
     const description = `${lead1} Every NBA ${l.query.seq === 'teamGames' ? 'season' : 'career'}${eraWords(bound)} ranked at the same point: ${queryWords(l.query, bound)}. Open a row to read it against a peer.`.replace(/\s+/g, ' ').trim()
     const html = renderToString(React.createElement(App, { path: `/${SLUG}/${l.slug}/`, ledger: L }))
+    if (!html.includes(`<span class="h1-words">${esc(l.h1).replace(/'/g, '&#x27;')}</span>`)) throw new Error(`prerender: ${l.slug} rendered without its h1`)
     const ld = {
       '@context': 'https://schema.org',
       '@graph': [

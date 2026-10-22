@@ -34,7 +34,7 @@ import { spanWords, STAT_COLS } from '../../src/lib/ledger.ts';
 import { ensureCols, loadLedger as loadColumns, type ColUrl } from '../../src/lib/load.ts';
 import { evaluate, queryCols, type Board, type Query, type Row } from '../../src/lib/query.ts';
 import { parseUrl, toUrl, parseAddress } from '../../src/lib/url.ts';
-import { landingFromPath } from '../../src/lib/landing.ts';
+import { landingFor, landingFromPath } from '../../src/lib/landing.ts';
 import { eraBound } from '../../src/lib/query.ts';
 import { queryWords } from '../../src/lib/words.ts';
 import { cardHeading, cardRows, isShared, shareDescription, shareTitle, SITE as SITE_NAME } from '../../src/lib/share.ts';
@@ -210,6 +210,9 @@ const ogImageUrl = (origin: string, search: string) => `${origin}${BASE}/share/o
 const content = (text: string) => ({
   element(e: Element) { e.setAttribute('content', text); },
 });
+const href = (text: string) => ({
+  element(e: Element) { e.setAttribute('href', text); },
+});
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -275,8 +278,12 @@ export default {
       const title = shareTitle(query, openRow, peer, board ? eraBound(query, board) : null);
       const description = shareDescription(query, L, board, openRow, firstSeason, peer);
       const img = ogImageUrl(origin, toUrl(state));
+      // the search address: a named board's page when the query is one, else the root (an unnamed query has no page of its own)
+      const named = landingFor(query);
+      const canonical = `${origin}${BASE}/${named ? `${named.slug}/` : ''}`;
       return new HTMLRewriter()
         .on('title', { element(e) { e.setInnerContent(title); } })
+        .on('link[rel="canonical"]', href(canonical))
         .on('meta[name="description"]', content(description))
         .on('meta[property="og:title"]', content(title))
         .on('meta[property="og:description"]', content(description))

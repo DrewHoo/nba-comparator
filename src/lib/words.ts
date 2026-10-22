@@ -124,6 +124,36 @@ export function breakerWords(r: RecordRow): string {
 
 // ---- the short form, for a card's heading and a title
 
+const POS_ONE: Record<Pos, string> = { ALL: '', G: 'guard', F: 'forward', C: 'center' }
+
+/**
+ * the h1 of a board that is no named board (landing.ts has those): the query worded the way
+ * it is searched, then the league and the position, the scope and the era the data forces.
+ * "Most points through the first 100 games of an NBA career", "Fastest to 10,000 points in NBA
+ * history, by starts", "Most steals through the first 100 games of an NBA guard's career since 1983-84",
+ * "Most points in a team's first 82 games of an NBA season, playoffs included"
+ */
+export function h1Words(q: Query, bound: number | null = null): string {
+  const stat = statByKey(q.stat)
+  const pos = POS_ONE[q.pos]
+  const career = pos ? `an NBA ${pos}'s career` : 'an NBA career'
+  const season = pos ? `an NBA ${pos}'s season` : 'an NBA season'
+  const who = pos ? `by an NBA ${pos}` : 'in NBA history'
+  const win = q.seq === 'teamGames' ? `a team's first ${fmt(q.n)} games of ${season}` : `the first ${fmt(q.n)} ${seqWords(q.seq, q.n)} of ${career}`
+  let words: string
+  if (q.how === 'sum' && q.seq === 'seasons' && q.n === 1) words = `${q.dir} ${stat.noun} in ${pos ? `an NBA ${pos}'s rookie season` : 'an NBA rookie season'}`
+  else if (q.how === 'sum') words = `${q.dir} ${stat.noun} ${q.seq === 'teamGames' ? 'in' : 'through'} ${win}`
+  else if (q.how === 'reach') words = `${q.dir === 'fewest' ? 'fastest' : 'slowest'} to ${countWords(q.n, stat)} ${who}${q.seq === 'starts' ? ', by starts' : ''}`
+  else {
+    const t = testsWords(q.tests)
+    if (q.how === 'every') words = `${t} in each of ${win}`
+    else if (q.how === 'streak') words = `longest streak of games with ${t} in ${win}`
+    else words = `${q.dir} games with ${t} in ${win}`
+  }
+  const scope = q.scope === 'all' ? ', playoffs included' : ''
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}${scope}${eraWords(q.since ?? bound)}`
+}
+
 /** "most points through 100 games", "fastest to 10,000 points", "most games with 30+ points in a team's first 20 games" */
 export function headWords(q: Query): string {
   const stat = statByKey(q.stat)

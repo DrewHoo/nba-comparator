@@ -16,7 +16,7 @@ import { seasonWords, spanWords } from '../lib/ledger.ts'
 import { RECORDS, KNOB_PATHS, decodePlayer, knobAt, page, withKnob, statOf } from '../lib/records.ts'
 import { statByKey } from '../lib/stats.ts'
 import { POS_WORDS, breakerWords, placeWords, recordWords, runWords } from '../lib/words.ts'
-import { toUrl } from '../lib/url.ts'
+import { hrefOf } from '../lib/url.ts'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -35,7 +35,8 @@ function Terms({ r }) {
 const unitWords = (r) => (r.shape.how === 'reach' ? (r.shape.seq === 'starts' ? 'starts' : 'games') : r.shape.how === 'sum' ? statByKey(r.shape.stat).noun : 'games')
 
 function Row({ r, tune, minN }) {
-  const href = `${BASE}${toUrl({ query: { ...r.shape, n: r.at }, open: r.key })}`
+  // a named board's path when the claim is one (landing.ts), else the query string
+  const href = `${BASE}${hrefOf({ query: { ...r.shape, n: r.at }, open: r.key }).slice(1)}`
   const run = runWords(r, minN)
   return (
     <div className={'rrow' + (r.live ? ' live' : '')}>
