@@ -101,14 +101,15 @@ function BoardApp({ L, initial }) {
     document.title = l && !row ? landingTitle(l, bound, SITE) : toUrl({ query, open: row?.key ?? null, vs }) ? shareTitle(query, row, peer, bound) : rootTitle.current
   }, [query, row, peer, vs, bound])
 
-  const change = (q) => {
+  // `track: false` moves the board without a `query` event: the number box fires one on blur, not per keystroke
+  const change = (q, { track: tracked = true } = {}) => {
     const next = normalize(q)
     // a position change that drops the open player out of the field closes him
     const drops = row != null && next.pos !== 'ALL' && row.player.pos !== next.pos
     setQuery(next)
     if (drops) { setOpen(null); setVs(null) }
     writeUrl(hrefOf({ query: next, open: drops ? null : open, vs: drops ? null : vs }), 'replace')
-    track('query', { words: queryWords(next) })
+    if (tracked) track('query', { words: queryWords(next) })
   }
   const openRow = (key) => {
     const next = open === key ? null : key
