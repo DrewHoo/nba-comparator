@@ -1,0 +1,12 @@
+{
+  // The worker's typecheck (npm run typecheck:worker): the workers runtime in
+  // place of the DOM, over the worker and the src/lib it bundles. Its
+  // CacheStorage and the DOM's disagree, so it can't share the root include.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["./**/*.ts", "../../src/lib/**/*.ts"],
+  "exclude": ["../../src/lib/**/*.test.ts", "../../src/lib/analytics.ts"]
+}

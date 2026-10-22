@@ -1,0 +1,66 @@
+{
+  "note": "Rows NBA.com's game logs carry that the record books don't, each with the receipt that says so. Applied by scripts/build-history.mjs before its own ghost-row pass. A drop names the date, the team code of the day and the NBA person id.",
+  "drop": [
+    {
+      "date": "1962-02-02",
+      "team": "SYR",
+      "pid": "78076",
+      "name": "Dolph Schayes",
+      "note": "An 11-point row that duplicates Lee Shaffer's line (5 FG, 1 FT, 2 reb) in the same game; Basketball-Reference's 1961-62 log has no Schayes game that day.",
+      "receipt": "https://www.basketball-reference.com/players/s/schaydo01/gamelog/1962"
+    },
+    {
+      "date": "1950-10-31",
+      "team": "ROC",
+      "pid": "600012",
+      "name": "George Mikan",
+      "note": "Ed Mikan's Rochester opener filed under George's id, before George's first Minneapolis game of the season, so the wedged-row rule can't see it; Basketball-Reference's 1950-51 log for George starts Nov 1 at Baltimore.",
+      "receipt": "https://www.basketball-reference.com/players/m/mikange01/gamelog/1951"
+    }
+  ],
+  "tiebreakers": [
+    {
+      "date": "1947-03-31",
+      "teams": [
+        "CHS",
+        "BOM"
+      ]
+    },
+    {
+      "date": "1950-03-21",
+      "teams": [
+        "MNL",
+        "ROC"
+      ]
+    },
+    {
+      "date": "1956-03-15",
+      "teams": [
+        "SYR",
+        "NYK"
+      ]
+    },
+    {
+      "date": "1956-03-16",
+      "teams": [
+        "MNL",
+        "STL"
+      ]
+    },
+    {
+      "date": "1957-03-14",
+      "teams": [
+        "FTW",
+        "STL"
+      ]
+    },
+    {
+      "date": "1957-03-16",
+      "teams": [
+        "MNL",
+        "STL"
+      ]
+    }
+  ],
+  "tiebreakersNote": "Playoff tiebreaker games of 1947 to 1957 that NBA.com's log types as regular season; Basketball-Reference and the record books count them as postseason (Pettit's 792 games and 20,880 points, Johnny Kerr's 844 straight games). They move to the playoffs here."
+}

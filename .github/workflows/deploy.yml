@@ -1,0 +1,107 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+  # Noon UTC daily, after the night's games: the scheduled build refetches
+  # the hoopR files and rebuilds the ledger before building (a manual run
+  # does too), so last night's games reach the site without a commit. A push
+  # builds from the committed ledger, so a code change never waits on a
+  # download.
+  schedule:
+    - cron: '0 12 * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      # The raw hoopR files (data/raw, ~600MB over 34 seasons) are cached
+      # between refreshes, keyed by the running season (CURRENT_SEASON in
+      # scripts/lib/window.mjs, the one the fetcher reads). Only the running
+      # season's files change, so they stay out of the cache and are fetched
+      # fresh every run; fetch-hoopr.mjs skips every finished season's file
+      # already there. A new season saves a new archive, which then holds the
+      # last season's files fetched after it ended, so nothing cached is a
+      # season frozen mid-way.
+      - if: github.event_name != 'push'
+        id: season
+        run: node -e "import('./scripts/lib/window.mjs').then((m) => console.log('season=' + m.CURRENT_SEASON))" >> "$GITHUB_OUTPUT"
+      - if: github.event_name != 'push'
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/raw
+            !data/raw/*_${{ steps.season.outputs.season }}.*
+          key: hoopr-raw-${{ steps.season.outputs.season }}
+          restore-keys: hoopr-raw-
+      - if: github.event_name != 'push'
+        run: npm run fetch && npm run ledger
+      # the build also mines the records (npm run build runs it)
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Ask Bing and the other IndexNow engines to recrawl, once the pages are
+  # live: a push sends the board and the named boards (the live sitemap's
+  # URLs that aren't player pages); the daily refresh, which changes every
+  # page's data, sends the whole sitemap. A failed ping never fails the
+  # deploy (the script exits 0). No npm ci: the script imports nothing
+  # outside the repo.
+  indexnow:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # (an empty string is falsy in an expression, so the flag is the truthy branch)
+      - run: node scripts/indexnow.mjs ${{ github.event_name != 'push' && '--all' || '' }}
+
+  # The share worker (workers/share) bundles src/lib, so it ships with the
+  # site. Needs a CLOUDFLARE_API_TOKEN repo secret: a token made from the
+  # "Edit Cloudflare Workers" template. The daily data refresh changes no
+  # worker code, so it skips this.
+  worker:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          wranglerVersion: '4.151.3'
+          command: deploy -c workers/share/wrangler.jsonc
