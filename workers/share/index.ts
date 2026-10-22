@@ -13,7 +13,9 @@
 //   /share/og.png   the board drawn on demand (card.ts): the worker fetches
 //                   the ledger the prerender publishes (dist/data/ledger.json
 //                   and the gzipped columns in dist/data/cols/), runs the
-//                   site's own evaluate, and renders the top of the board.
+//                   site's own evaluate, and renders the top of the board;
+//                   with a player open (?t=, and his peer from vs= or the
+//                   leader), the two sides, the panel's chart and its lines.
 //                   Cached at the edge.
 //
 // The ledger is columnar (~860k player-games): the worker loads the players
@@ -30,16 +32,18 @@
 // http://localhost:8788/nba-comparator/share/og.png?n=50
 
 import type { ColName, Ledger, LedgerFile } from '../../src/lib/ledger.ts';
-import { spanWords, STAT_COLS } from '../../src/lib/ledger.ts';
+import { seasonWords, spanWords, STAT_COLS } from '../../src/lib/ledger.ts';
+import { FIRST_SEASON } from '../../scripts/lib/window.mjs';
 import { ensureCols, loadLedger as loadColumns, type ColUrl } from '../../src/lib/load.ts';
 import { evaluate, queryCols, type Board, type Query, type Row } from '../../src/lib/query.ts';
 import { parseUrl, toUrl, parseAddress } from '../../src/lib/url.ts';
 import { landingFor, landingFromPath } from '../../src/lib/landing.ts';
 import { eraBound } from '../../src/lib/query.ts';
-import { queryWords } from '../../src/lib/words.ts';
+import { queryWords, rankWords, rowName, rowWords, seqWords } from '../../src/lib/words.ts';
+import { countWords, statByKey } from '../../src/lib/stats.ts';
 import { cardHeading, cardRows, isShared, shareDescription, shareTitle, SITE as SITE_NAME } from '../../src/lib/share.ts';
-import { peerOf } from '../../src/lib/compare.ts';
-import { renderCard } from './card.ts';
+import { compare, crossingWords, matchWords, peerOf } from '../../src/lib/compare.ts';
+import { renderCard, type Card } from './card.ts';
 
 interface Env { ORIGIN?: string; NO_REPORT?: string }
 
@@ -119,7 +123,7 @@ const urlProps = (url: URL) => {
 };
 
 /** Bump on any change to what the card draws or how a URL reads; it keys the edge cache. */
-const CARD_VERSION = '2026-10-21a';
+const CARD_VERSION = '2026-10-22d';
 
 const edge = (ttl: number) => ({ cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': ttl, '400-599': 30 } } }) as RequestInit;
 // a fresh cache key each UTC day: GitHub Pages ignores query strings, and a
@@ -185,15 +189,52 @@ async function ledgerFor(origin: string, q: Query): Promise<Ledger> {
 
 const findRow = (board: Board, key: string | null): Row | null => (key ? [...board.ranked, ...board.onTheWay].find((r) => r.key === key) ?? null : null);
 
+/** the comparison's card: both sides, the panel's chart and its lines (the NFL Comparator's card) */
+function compareCard(L: Ledger, q: Query, board: Board, row: Row, peer: Row, footer: string): Card {
+  const stat = statByKey(q.stat);
+  const field = board.ranked.length;
+  const unit = q.how === 'reach' ? seqWords(q.seq, 2) : q.how === 'sum' ? stat.noun : 'games';
+  const value = (r: Row) => (r.value == null ? '—' : r.value.toLocaleString('en-US'));
+  const place = (r: Row) => (r.complete && r.value != null ? rankWords(r, field) : 'inside the window');
+  const claim = (r: Row) => (r.value == null ? `${r.reached.toLocaleString('en-US')} ${seqWords(q.seq, r.reached)} so far`
+    : r.season != null ? `${r.team}'s first ${q.n} games of ${seasonWords(r.season)}`
+    : q.how === 'reach' ? `to ${countWords(q.n, stat)}`
+    : `through his first ${r.reached.toLocaleString('en-US')} ${seqWords(q.seq, r.reached)}`);
+  const cmp = compare(L, row, peer, q);
+  const lines: string[] = [];
+  if (cmp) {
+    lines.push(cmp.xs[0] ? `${row.player.name} ${crossingWords(cmp.xs[0], peer, q)}.` : 'Their curves never met.');
+    const m = matchWords(row, peer, cmp, q);
+    if (m) lines.push(m);
+  } else {
+    lines.push(`${rowName(row)}: ${rowWords(row, q)}.`);
+    if (peer.value != null) lines.push(`${rowName(peer)}: ${rowWords(peer, q)}.`);
+  }
+  return {
+    heading: `${rowName(row)} vs ${rowName(peer)}`,
+    words: queryWords(q, eraBound(q, board)),
+    sides: [
+      { name: rowName(row), value: value(row), unit, claim: `${place(row)} · ${claim(row)}` },
+      { name: rowName(peer), value: value(peer), unit, claim: `${place(peer)} · ${claim(peer)}` },
+    ],
+    lines,
+    chart: cmp ? { me: cmp.me, them: cmp.them, n: cmp.n, unit: seqWords(q.seq, 1) } : null,
+    footer,
+  };
+}
+
 async function ogCard(origin: string, search: string): Promise<Response> {
-  const { query, open } = parseUrl(search);
+  const { query, open, vs } = parseUrl(search);
   const L = await ledgerFor(origin, query);
   const board = evaluate(L, query);
-  const res = renderCard({
+  const footer = `${spanWords(eraBound(query, board) ?? L.firstSeason, L.currentSeason)} · ${board.ranked.length.toLocaleString('en-US')} ${query.seq === 'teamGames' ? 'player-seasons' : 'careers'} with the whole window · drewhoover.com`;
+  const openRow = findRow(board, open);
+  const peer = openRow ? peerOf(board, openRow, vs) : null;
+  const res = renderCard(openRow && peer ? compareCard(L, query, board, openRow, peer, footer) : {
     heading: cardHeading(query),
     words: queryWords(query, eraBound(query, board)),
     rows: cardRows(board, query, open),
-    footer: `${spanWords(eraBound(query, board) ?? L.firstSeason, L.currentSeason)} · ${board.ranked.length.toLocaleString('en-US')} ${query.seq === 'teamGames' ? 'player-seasons' : 'careers'} with the whole window · drewhoover.com`,
+    footer,
   });
   // buffer the render: workers-og streams lazily, and a failure mid-stream
   // would otherwise ship a 200 with an empty body
@@ -262,7 +303,7 @@ export default {
       // a crawler's description names the leader, or the open player read against his
       // peer (vs=, else the leader), from the ledger; a browser's is the pure sentence,
       // and the page sets its own title once it hydrates
-      let L: Ledger | null = null, board: Board | null = null, openRow: Row | null = null, peer: Row | null = null, firstSeason = 1994;
+      let L: Ledger | null = null, board: Board | null = null, openRow: Row | null = null, peer: Row | null = null, firstSeason = FIRST_SEASON;
       if (crawler) {
         try {
           L = await ledgerFor(origin, query);
