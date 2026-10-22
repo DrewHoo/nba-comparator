@@ -82,7 +82,7 @@ function headFor({ url, title, description, jsonLd, image = { url: `${SITE}og.pn
     <meta name="twitter:image" content="${image.url}" />
 
     <!-- Cross-site chrome served by the index site: back bar, comments, analytics. -->
-    <script src="${ORIGIN}/embed/back-bar.js" async></script>
+    <script src="${ORIGIN}/embed/back-bar.js" data-section="sports" async></script>
     <script src="${ORIGIN}/embed/giscus.js" async></script>
     <script src="${ORIGIN}/embed/analytics.js" async></script>
 

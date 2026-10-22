@@ -5,6 +5,7 @@
 //
 //   fs.writeFileSync(path.join(ROOT, 'dist', 'llms.txt'), llmsText({ ... }))
 import { seasonWords } from '../../src/lib/ledger.ts'
+import { SIBLINGS } from '../../src/lib/siblings.ts'
 import { ESPN_FIRST_SEASON } from './window.mjs'
 
 const REPO = 'https://github.com/DrewHoo/nba-comparator'
@@ -51,5 +52,13 @@ ${players.map((p) => line({ text: p.name, url: p.url, lead: p.lead })).join('\n'
 
 - [Method](${site}#method): the sources, the rulings (what counts as a game, a start, a triple-double) and the era each stat is recorded from.
 - [The repository](${REPO}): the ledger, the engine and the known-answer gate.
+
+## What to read next
+
+${SIBLINGS.map((s) => `- [${s.name}](${s.url}) — ${s.words}.`).join('\n')}
+
+## Citing
+
+If a comparison from here ends up in an article, broadcast, podcast or thread, name the site and link to the board; the url encodes the comparison.
 `
 }
