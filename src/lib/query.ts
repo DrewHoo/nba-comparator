@@ -83,6 +83,8 @@ export interface Board {
   early: number
   /** entities with a game inside the window where the stat wasn't recorded, and sit out */
   partial: number
+  /** finished player-seasons shorter than the window on a fewest board, and sit out: playing less would lead it */
+  short: number
   /** the first season of the ledger */
   first: number
   /** the era the data forces on this query: the ledger's first season, or the season its stat is recorded from */
@@ -226,7 +228,9 @@ export function evaluate(L: Ledger, raw: Query): Board {
   const since = Math.max(L.firstSeason, querySince(q))
   const ranked: Row[] = []
   const onTheWay: Row[] = []
-  let gapped = 0, censored = 0, early = 0, partial = 0
+  let gapped = 0, censored = 0, early = 0, partial = 0, short = 0
+  // a fewest board ranks the whole window only: a finished season shorter than it would lead by playing less (a career already needs the window)
+  const wholeOnly = q.dir === 'fewest' && q.how !== 'reach'
   const push = (r: Row) => { r.age = r.games.length ? ageAt(r.player.born, L.date[r.games[r.games.length - 1]]) : null; (r.complete && r.value != null ? ranked : onTheWay).push(r) }
   const blank = { rank: 0, tied: false, age: null }
 
@@ -247,8 +251,10 @@ export function evaluate(L: Ledger, raw: Query): Board {
         const own = gs.filter((g) => L.team[g] === teamIdx && L.tgn[g] <= q.n)
         if (own.some((g) => (q.how === 'sum' || q.how === 'reach' ? stat.read(L, g) === UNKNOWN : !known(L, g, q.tests)))) { partial++; continue }
         const playedN = L.teamGames[team]?.[season]?.[q.scope === 'reg' ? 0 : 1] ?? 0
-        // a season that is over is whole: a 75-game 1959-60 fills an 82-game window (the words say "all 75 games")
-        const complete = playedN >= q.n || (playedN > 0 && season < L.currentSeason)
+        // a season that is over is whole: a 75-game 1959-60 fills an 82-game window (the words say "all 75 games"), except on a fewest board
+        const over = playedN > 0 && season < L.currentSeason
+        if (wholeOnly && over && playedN < q.n) { short++; continue }
+        const complete = playedN >= q.n || over
         const reachedN = Math.min(playedN, q.n)
         if (q.how === 'reach') {
           let cum = 0, at: number | null = null
@@ -279,7 +285,7 @@ export function evaluate(L: Ledger, raw: Query): Board {
     push({ key: p.id, player: p, season: null, ...m, from: gs.length ? L.season[gs[0]] : p.debut, to: gs.length ? L.season[gs[gs.length - 1]] : p.debut, team: null, ...blank })
   }
   // every: the count is the value, so the entities that held in every game lead the ranking
-  return { ranked: rankRows(ranked, q.dir), onTheWay: rankRows(onTheWay, q.dir), gapped, censored, early, partial, first: L.firstSeason, since, startsSince: L.startsSince }
+  return { ranked: rankRows(ranked, q.dir), onTheWay: rankRows(onTheWay, q.dir), gapped, censored, early, partial, short, first: L.firstSeason, since, startsSince: L.startsSince }
 }
 
 /** a career's cumulative curve of a stat over the sequence: cum[i] is the total through item i+1 */

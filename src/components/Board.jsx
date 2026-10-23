@@ -64,6 +64,7 @@ export function Board({ board, query, open, onOpen, panel }) {
       {board.censored > 0 && q.since == null && <p className="gapped">{board.censored} careers began before {seasonWords(board.first)} and have no first {seqWords(q.seq, 2)} here.</p>}
       {board.early > 0 && eraBound(q, board) === board.since && q.since == null && <p className="gapped">{board.early.toLocaleString('en-US')} {unit} from before {seasonWords(board.since)} sit out: the box score didn't record {q.how === 'sum' || q.how === 'reach' ? stat.noun : testsWords(q.tests).replace(/\d+\+ /g, '')} in every game until then.</p>}
       {board.partial > 0 && <p className="gapped">{board.partial.toLocaleString('en-US')} {unit} sit out: a game inside the window has no {q.how === 'sum' || q.how === 'reach' ? stat.noun : 'line'} recorded.</p>}
+      {board.short > 0 && <p className="gapped">{board.short.toLocaleString('en-US')} {unit} sit out: they ended short of the window, and on a fewest board playing less would lead it.</p>}
       {ranked.length === 0 && <p className="empty">Nobody has {q.how === 'reach' ? 'got there' : 'the whole window'} yet. Shorten it.</p>}
       <Rows rows={ranked.slice(0, showN)} q={q} open={open} onOpen={onOpen} panel={panel} />
       {ranked.length > showN && <button className="morebtn" onClick={() => setShown(showN + PAGE * 2)}>see more · {ranked.length - showN} below</button>}

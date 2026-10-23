@@ -171,6 +171,18 @@ describe('the audit of 2026-10-21: famous numbers across the eras', () => {
     expect(row(q({ stat: 'ast', seq: 'teamGames', n: 82 }), 'Mark Jackson', 1988)!.value).toBe(868)
     expect(row(q({ stat: 'blk', seq: 'teamGames', n: 82 }), 'Mark Eaton', 1985)!.value).toBe(456)
   })
+  it('a fewest season board ranks the whole window only: a finished season shorter than it sits out', () => {
+    // Anžejs Pasečņiks's one game of the 72-game 2020-21 led "fewest losses through 82 team games" among centers until the fewest boards required the window
+    const b = q({ pos: 'C', stat: 'loss', seq: 'teamGames', n: 82, dir: 'fewest' })
+    expect(row(b, 'Anžejs Pasečņiks', 2021)).toBeUndefined()
+    expect(b.ranked.every((r) => r.reached === 82)).toBe(true)
+    expect(b.ranked.some((r) => r.season === 1999)).toBe(false)
+    expect(b.short).toBeGreaterThan(0)
+    expect(b.ranked[0].player.name).toBe('Carl Bailey')
+    expect(b.ranked[0].season).toBe(1982)
+    expect(b.ranked[0].value).toBe(0)
+    expect(b.ranked[0].rank).toBe(1)
+  })
   it("streaks: Wilt's 126 straight 20-point games and 65 straight 30s; Kareem's 787 in double figures; Jordan's 866; Harden's 32 straight 30s; Kevin Love's 53 straight double-doubles", () => {
     expect(row(q({ how: 'streak', tests: [{ stat: 'pts', min: 20 }], n: 2000 }), 'Wilt Chamberlain')!.value).toBe(126)
     expect(row(q({ how: 'streak', tests: [{ stat: 'pts', min: 30 }], n: 2000 }), 'Wilt Chamberlain')!.value).toBe(65)

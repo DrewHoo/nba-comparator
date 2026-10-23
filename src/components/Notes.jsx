@@ -92,8 +92,9 @@ export function Notes({ ledger }) {
             didn't play has no game, which is the league's games-played count. A <b>win</b> is the result of a game in the
             sequence. "Team games of a season" count the team's schedule, so a player who sat one has a gap the window
             still counts, and a player traded mid-season is read on his first team's schedule; a season that is over fills
-            a longer window whole, so a 75-game 1959-60 ranks on an 82-game board as "all 75 games". The regular season is
-            the default; the word beside it switches the playoffs in. Play-in games count as neither, as in the league's
+            a longer window whole, so a 75-game 1959-60 ranks on an 82-game board as "all 75 games". A fewest board is the
+            exception: playing less would lead it, so it counts only the careers and seasons that reached the window. The
+            regular season is the default; the word beside it switches the playoffs in. Play-in games count as neither, as in the league's
             own books; the NBA Cup final is out too, and the Cup's group and knockout games count like any regular-season
             game; the All-Star game is out.
           </p>
