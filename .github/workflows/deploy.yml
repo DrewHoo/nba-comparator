@@ -77,6 +77,8 @@ jobs:
   indexnow:
     runs-on: ubuntu-latest
     needs: deploy
+    # a scheduled run asks for nothing (Drew, 2026-10-24: no scheduled IndexNow --all); a push sends what it changed, a dispatch the whole sitemap
+    if: github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
