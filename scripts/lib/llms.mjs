@@ -63,7 +63,7 @@ ${teams.map((t) => line({ text: t.h1, url: t.url, lead: t.lead })).join('\n')}
 
 ## What to read next
 
-${SIBLINGS.map((s) => `- [${s.name}](${s.url}) — ${s.words}.`).join('\n')}
+${SIBLINGS.map((s) => `- [${s.name}](${s.url})${s.links ? ':' : ' —'} ${s.words}.${s.links ? ' ' + s.links.map((l) => `[${l.name}](${l.url})`).join(' | ') : ''}`).join('\n')}
 
 ## Citing
 
