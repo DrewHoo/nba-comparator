@@ -44,8 +44,10 @@ import { countWords, statByKey } from '../../src/lib/stats.ts';
 import { cardHeading, cardRows, isShared, shareDescription, shareTitle, SITE as SITE_NAME } from '../../src/lib/share.ts';
 import { compare, crossingWords, matchWords, peerOf } from '../../src/lib/compare.ts';
 import { renderCard, type Card } from './card.ts';
+// every page's PUN address (puttingupnumbers.com took the comparators over): PUN's site/scripts/legacy.ts writes it
+import LEGACY from './legacy.json';
 
-interface Env { ORIGIN?: string; NO_REPORT?: string }
+interface Env { ORIGIN?: string; NO_REPORT?: string; PUN_ORIGIN?: string }
 
 const BASE = '/nba-comparator';
 /** the Mixpanel `site` prop */
@@ -259,6 +261,14 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const origin = env.ORIGIN ?? 'https://drewhoover.com';
+
+    // the move to puttingupnumbers.com: with PUN_ORIGIN set (wrangler.jsonc), every page 301s to its PUN page, a player to his, a team to its, a named board to the same board, anything else to the sport's page. A file (the data, the cards, the assets) is never redirected: the map has no entry for one.
+    if (env.PUN_ORIGIN && request.method === 'GET') {
+      const p = url.pathname.startsWith(BASE) ? url.pathname.slice(BASE.length) || '/' : url.pathname;
+      const map = LEGACY as Record<string, string>;
+      const to = map[p] ?? map[`${p}/`] ?? (/\.[a-z0-9]+$/i.test(p) || p.startsWith('/share/') || p.startsWith('/data/') ? null : map['/']);
+      if (to) return Response.redirect(`${env.PUN_ORIGIN}${to}`, 301);
+    }
 
     // the dynamic card, cached at the edge under this deploy's version, so a
     // card an older worker drew for the same URL can't outlive the deploy
