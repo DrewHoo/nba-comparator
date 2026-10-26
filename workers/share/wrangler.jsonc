@@ -7,8 +7,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "routes": [{ "pattern": "drewhoover.com/nba-comparator/*", "zone_name": "drewhoover.com" }],
   "workers_dev": false,
-  // the move to puttingupnumbers.com: set to "https://puttingupnumbers.com" and every page 301s to its PUN page (legacy.json); empty, nothing redirects
-  "vars": { "PUN_ORIGIN": "" },
+  // the move to puttingupnumbers.com (Drew, 2026-10-26): every page 301s to its PUN page (legacy.json); empty, nothing redirects
+  "vars": { "PUN_ORIGIN": "https://puttingupnumbers.com" },
   "observability": { "enabled": true, "head_sampling_rate": 1 },
   // the card's fonts ride in the bundle; resvg's wasm imports as a module
   "rules": [{ "type": "Data", "globs": ["**/*.ttf"], "fallthrough": true }]
