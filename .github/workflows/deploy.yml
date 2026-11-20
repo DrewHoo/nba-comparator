@@ -4,13 +4,8 @@ on:
   push:
     branches: ['main']
   workflow_dispatch:
-  # Noon UTC daily, after the night's games: the scheduled build refetches
-  # the hoopR files and rebuilds the ledger before building (a manual run
-  # does too), so last night's games reach the site without a commit. A push
-  # builds from the committed ledger, so a code change never waits on a
-  # download.
-  schedule:
-    - cron: '0 12 * * *'
+  # No schedule since 2026-11-20. Every page here 301s to puttingupnumbers.com, which refreshes
+  # its own data, so the scheduled refetch fed nothing. A manual run still refetches before it builds.
 
 permissions:
   contents: read
